@@ -1,12 +1,18 @@
 package com.example.atm1;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -36,30 +42,69 @@ public class LoginActivity extends AppCompatActivity {
     private EditText edUserid;
     private EditText edPasswd;
     private CheckBox cbRemember;
+    private Intent helloService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
-//        camera();
-//        settingsTest();
+        //Fragment
+        FragmentManager manager = getSupportFragmentManager();
+        FragmentTransaction fragmentTransaction = manager.beginTransaction();
+        fragmentTransaction.add(R.id.container_new, NewsFragment.getInstance());
+        fragmentTransaction.commit();
+        //Service
+        helloService = new Intent(this, HelloService.class);
+        helloService.putExtra("NAME", "T1");
+        startService(helloService);
+        helloService.putExtra("NAME", "T2");
+        startService(helloService);
+        helloService.putExtra("NAME", "T3");
+        startService(helloService);
+
+
         findViews();
         new TestTask().execute("http://tw.yahoo.com");
     }
 
-    public class TestTask extends AsyncTask<String,Void,Integer>{
+    public  void map(View view){
+        startActivity(new Intent(this,MapsActivity.class));
+    }
+
+    BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "onReceive: Hello" + intent.getAction());
+        }
+    };
+    @Override
+    protected void onStart() {
+        super.onStart();
+        IntentFilter filter = new IntentFilter(HelloService.ACTION_HELLO_DONE);
+        registerReceiver(receiver,filter);
+
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        stopService(helloService);
+        unregisterReceiver(receiver);
+    }
+
+    public class TestTask extends AsyncTask<String, Void, Integer> {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
-            Log.d(TAG,"onPreExecute:");
-            Toast.makeText(LoginActivity.this,"onPreExecute",Toast.LENGTH_LONG).show();
+            Log.d(TAG, "onPreExecute:");
+            Toast.makeText(LoginActivity.this, "onPreExecute", Toast.LENGTH_LONG).show();
         }
 
         @Override
         protected void onPostExecute(Integer integer) {
             super.onPostExecute(integer);
-            Log.d(TAG,"onPreExecute:");
-            Toast.makeText(LoginActivity.this,"onPreExecute:" + integer,Toast.LENGTH_LONG).show();
+            Log.d(TAG, "onPreExecute:");
+            Toast.makeText(LoginActivity.this, "onPreExecute:" + integer, Toast.LENGTH_LONG).show();
         }
 
         @Override
@@ -84,30 +129,30 @@ public class LoginActivity extends AppCompatActivity {
         edPasswd = findViewById(R.id.passwd);
         cbRemember = findViewById(R.id.cb_rem_userid);
         cbRemember.setChecked(
-                getSharedPreferences("atm",MODE_PRIVATE)
-                        .getBoolean("REMEMBER_USERID",false));
+                getSharedPreferences("atm", MODE_PRIVATE)
+                        .getBoolean("REMEMBER_USERID", false));
         cbRemember.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                getSharedPreferences("atm",MODE_PRIVATE)
+                getSharedPreferences("atm", MODE_PRIVATE)
                         .edit()
-                        .putBoolean("REMEMBER_USERID",isChecked)
+                        .putBoolean("REMEMBER_USERID", isChecked)
                         .apply();
             }
         });
-        String userid = getSharedPreferences("atm",MODE_PRIVATE)
-                .getString("USERID","");
+        String userid = getSharedPreferences("atm", MODE_PRIVATE)
+                .getString("USERID", "");
         edUserid.setText(userid);
     }
 
     private void settingsTest() {
-        getSharedPreferences("atm",MODE_PRIVATE)
+        getSharedPreferences("atm", MODE_PRIVATE)
                 .edit()
-                .putInt("LEVEL",3)
-                .putString("NAME","Tom")
+                .putInt("LEVEL", 3)
+                .putString("NAME", "Tom")
                 .commit();
-        int level = getSharedPreferences("atm",MODE_PRIVATE)
-                .getInt("LEVEL",0);
+        int level = getSharedPreferences("atm", MODE_PRIVATE)
+                .getInt("LEVEL", 0);
         Log.d(TAG, "onCreate: " + level);
     }
 
@@ -115,9 +160,9 @@ public class LoginActivity extends AppCompatActivity {
         int permission = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
         if (permission == PackageManager.PERMISSION_GRANTED) {
 //            takePhoto();
-        }else {
+        } else {
             ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.CAMERA},REQUEST_CODE_CAMERA);
+                    new String[]{Manifest.permission.CAMERA}, REQUEST_CODE_CAMERA);
 
         }
     }
@@ -126,8 +171,8 @@ public class LoginActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_CODE_CAMERA){
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED){
+        if (requestCode == REQUEST_CODE_CAMERA) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 takePhoto();
             }
         }
@@ -138,7 +183,7 @@ public class LoginActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    public void login (View view) {
+    public void login(View view) {
         final String userid = edUserid.getText().toString();
         final String passwd = edPasswd.getText().toString();
         FirebaseDatabase.getInstance().getReference("users").child(userid).child("password")
@@ -146,25 +191,25 @@ public class LoginActivity extends AppCompatActivity {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                         String pw = (String) dataSnapshot.getValue();
-                        if (pw.equals(passwd)){
-                            boolean remember = getSharedPreferences("atm",MODE_PRIVATE)
-                                    .getBoolean("REMEMBER_USERID",false);
+                        if (pw.equals(passwd)) {
+                            boolean remember = getSharedPreferences("atm", MODE_PRIVATE)
+                                    .getBoolean("REMEMBER_USERID", false);
                             if (remember) {
                                 //save userid
-                                    getSharedPreferences("atm",MODE_PRIVATE)
+                                getSharedPreferences("atm", MODE_PRIVATE)
                                         .edit()
-                                        .putString("USERID",userid)
+                                        .putString("USERID", userid)
                                         .apply();
                             }
 
 
                             setResult(RESULT_OK);
                             finish();
-                        }else {
+                        } else {
                             new AlertDialog.Builder(LoginActivity.this)
                                     .setTitle("登入結果")
                                     .setMessage("登入失敗")
-                                    .setPositiveButton("OK",null)
+                                    .setPositiveButton("OK", null)
                                     .show();
                         }
                     }
@@ -180,8 +225,7 @@ public class LoginActivity extends AppCompatActivity {
 
     }
 
-    public void quit (View view) {
-
+    public void quit(View view) {
 
 
     }
